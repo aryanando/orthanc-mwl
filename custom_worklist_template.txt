@@ -1,0 +1,19 @@
+# DICOM Worklist for Patient DOE^JOHN^MIDDLE
+(0008,0050) SH [ACC1754274328135]                          # Accession Number
+(0010,0010) PN [DOE^JOHN^MIDDLE]                          # Patient Name  
+(0010,0020) LO [P1754274328135]                           # Patient ID
+(0010,0030) DA [19800101]                                 # Patient Birth Date
+(0010,0040) CS [M]                                        # Patient Sex
+(0020,000D) UI [1.2.3.4.5.6.7.8.9.1754274328135]         # Study Instance UID
+(0032,1032) PN [REFERRING^PHYSICIAN]                      # Requesting Physician
+(0040,0100) SQ                                            # Scheduled Procedure Step Sequence
+  (fffe,e000) na                                          # Item 
+    (0008,0060) CS [CR]                                   # Modality
+    (0040,0001) AE [STATION1]                             # Scheduled Station AE Title
+    (0040,0002) DA [20250805]                             # Scheduled Procedure Step Start Date
+    (0040,0003) TM [080000]                               # Scheduled Procedure Step Start Time
+    (0040,0006) PN [RADIOLOGIST^CHIEF]                    # Scheduled Performing Physician Name
+    (0040,0007) LO [CHEST X-RAY]                          # Scheduled Procedure Step Description
+    (0040,0009) SH [CR001754274328135]                    # Scheduled Procedure Step ID
+  (fffe,e00d) na                                          # Item Delimitation Item
+(fffe,e0dd) na                                            # Sequence Delimitation Item

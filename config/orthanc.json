@@ -4,12 +4,17 @@
   "RegisteredUsers": {
     "orthanc": "orthanc"
   },
-  "Plugins": [
-    "/usr/share/orthanc/plugins"
-  ],
   "DicomAet": "ORTHANC",
   "DicomPort": 4242,
   "HttpPort": 8042,
+
+  "Plugins": [
+    "/usr/share/orthanc/plugins-available/libOrthancWebViewer.so",
+    "/usr/share/orthanc/plugins/libOrthancDicomWeb.so",
+    "/usr/share/orthanc/plugins/libModalityWorklists.so",
+    "/usr/share/orthanc/plugins/libOrthancExplorer2.so",
+    "/usr/share/orthanc/plugins/libOrthancGdcm.so"
+  ],
   
   "DicomWeb": {
     "Enable": true,
@@ -19,6 +24,14 @@
     "Host": "0.0.0.0",
     "Port": 8042,
     "Ssl": false
+  },
+
+  "WebViewer": {
+    "CachePath": "/var/lib/orthanc/WebViewerCache",
+    "CacheSize": 100,
+    "EnableGdcm": true,
+    "RestrictOrigins": false,
+    "Threads": 4
   },
   
   "HttpsCACertificates": "/etc/ssl/certs/ca-certificates.crt",
@@ -42,9 +55,19 @@
     "WorklistsFolder": "/worklists"
   },
   "DicomModalities": {
+    "WORKSTATION": [
+      "WORKSTATION",
+      "127.0.0.1",
+      11112
+    ],
+    "TESTMODALITY": [
+      "TESTMODALITY", 
+      "localhost",
+      4242
+    ],
     "FINDSCU": [
       "FINDSCU",
-      "192.168.65.1",
+      "172.17.0.1",
       104
     ]
   }
