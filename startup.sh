@@ -1,183 +1,324 @@
 #!/bin/bash
 
-# Hasta Radiologi PACS Server Startup Script
-# Docker container name: hasta-pacs
-# Provides persistent storage and proper configuration
+# Comprehensive PACS (Orthanc) Container Setup Script
+# This script checks the environment and sets up the Orthanc PACS container
 
-set -e
+set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONTAINER_NAME="hasta-pacs"
-ORTHANC_IMAGE="orthancteam/orthanc"
-HTTP_PORT="8042"
-DICOM_PORT="4242"
-
-# Colors for output
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🏥 Hasta Radiologi PACS Server Startup${NC}"
-echo "========================================"
-echo "Container: $CONTAINER_NAME"
-echo "HTTP Port: $HTTP_PORT"
-echo "DICOM Port: $DICOM_PORT"
-echo ""
+# Configuration
+CONTAINER_NAME="hasta-pacs-official"
+ORTHANC_IMAGE="jodogne/orthanc-plugins:latest"
+WEB_PORT=8042
+DICOM_PORT=4242
 
-echo "SCRIPT_DIR is $SCRIPT_DIR"
-ls -l "$SCRIPT_DIR/plugins"
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
 
-# Check if Docker is running
-if ! docker info >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Docker is not running!${NC}"
-    echo "Please start Docker Desktop and try again."
-    exit 1
-fi
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
 
-# Stop existing container if running
-if docker ps -q -f name="$CONTAINER_NAME" | grep -q .; then
-    echo -e "${YELLOW}⏹️  Stopping existing container: $CONTAINER_NAME${NC}"
-    docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
-fi
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
 
-# Remove existing container if it exists
-if docker ps -aq -f name="$CONTAINER_NAME" | grep -q .; then
-    echo -e "${YELLOW}🗑️  Removing existing container: $CONTAINER_NAME${NC}"
-    docker rm "$CONTAINER_NAME" >/dev/null 2>&1 || true
-fi
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
-# Create persistent directories
-echo -e "${BLUE}📁 Creating persistent directories...${NC}"
-mkdir -p "$SCRIPT_DIR/db"
-mkdir -p "$SCRIPT_DIR/plugins"
-mkdir -p "$SCRIPT_DIR/worklists"
-mkdir -p "$SCRIPT_DIR/logs"
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-# Set proper permissions
-chmod 755 "$SCRIPT_DIR/db"
-chmod 755 "$SCRIPT_DIR/plugins"
-chmod 755 "$SCRIPT_DIR/worklists"
-chmod 755 "$SCRIPT_DIR/logs"
-chmod 644 "$SCRIPT_DIR/config/orthanc.json"
-
-# Check if configuration file exists
-if [ ! -f "$SCRIPT_DIR/config/orthanc.json" ]; then
-    echo -e "${RED}❌ Error: Configuration file not found!${NC}"
-    echo "Expected: $SCRIPT_DIR/config/orthanc.json"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Configuration file found${NC}"
-
-# Check if ports are available
-if lsof -Pi :$HTTP_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Port $HTTP_PORT is already in use!${NC}"
-    echo "Please stop the service using this port and try again."
-    exit 1
-fi
-
-if lsof -Pi :$DICOM_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Port $DICOM_PORT is already in use!${NC}"
-    echo "Please stop the service using this port and try again."
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Ports $HTTP_PORT and $DICOM_PORT are available${NC}"
-
-# Pull latest Orthanc image
-echo -e "${BLUE}📥 Pulling Orthanc Docker image...${NC}"
-docker pull "$ORTHANC_IMAGE"
-
-# Start Orthanc container with persistent storage
-echo -e "${BLUE}🚀 Starting Hasta PACS container...${NC}"
-docker run -d \
-    --name "$CONTAINER_NAME" \
-    --restart unless-stopped \
-    --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-    --env=SSL_CERT_DIR=/etc/ssl/certs \
-    --env=MALLOC_ARENA_MAX=5 \
-    --volume="$SCRIPT_DIR/config/orthanc.json:/etc/orthanc/orthanc.json" \
-    --volume="$SCRIPT_DIR/db:/var/lib/orthanc/db" \
-    --volume="$SCRIPT_DIR/worklists:/worklists" \
-    --volume="$SCRIPT_DIR/plugins:/usr/share/orthanc/plugins" \
-    --network=bridge \
-    -p "$DICOM_PORT:4242" \
-    -p "$HTTP_PORT:8042" \
-    --label='org.opencontainers.image.ref.name=ubuntu' \
-    --label='org.opencontainers.image.version=24.04' \
-    --runtime=runc \
-    "$ORTHANC_IMAGE"
-
-# Wait for container to start
-echo -e "${YELLOW}⏳ Waiting for container to start...${NC}"
-sleep 3
-
-# Check if container is running
-if ! docker ps -q -f name="$CONTAINER_NAME" | grep -q .; then
-    echo -e "${RED}❌ Error: Container failed to start!${NC}"
-    echo "Container logs:"
-    docker logs "$CONTAINER_NAME" 2>&1 | tail -20
-    exit 1
-fi
-
-# Wait for Orthanc to be ready
-echo -e "${YELLOW}⏳ Waiting for Orthanc to be ready...${NC}"
-for i in {1..30}; do
-    if curl -s "http://localhost:$HTTP_PORT/system" >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ Orthanc is ready!${NC}"
-        break
+# Function to check if port is available
+check_port() {
+    local port=$1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 1  # Port is in use
+    else
+        return 0  # Port is available
     fi
+}
+
+# Function to check Docker installation and status
+check_docker() {
+    print_status "Checking Docker installation..."
     
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Error: Orthanc failed to start within 30 seconds${NC}"
-        echo "Container logs:"
-        docker logs "$CONTAINER_NAME" 2>&1 | tail -20
+    if ! command_exists docker; then
+        print_error "Docker is not installed. Please install Docker first."
+        print_status "Visit: https://docs.docker.com/get-docker/"
         exit 1
     fi
     
-    sleep 1
-done
+    print_success "Docker is installed"
+    
+    # Check if Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        print_error "Docker daemon is not running. Please start Docker."
+        exit 1
+    fi
+    
+    print_success "Docker daemon is running"
+    
+    # Display Docker version
+    local docker_version=$(docker --version)
+    print_status "Docker version: $docker_version"
+}
 
-# Get system information
-echo -e "${BLUE}📊 System Information:${NC}"
-SYSTEM_INFO=$(curl -s "http://localhost:$HTTP_PORT/system" 2>/dev/null || echo "{}")
-echo "$SYSTEM_INFO" | python3 -m json.tool 2>/dev/null || echo "Could not parse system info"
+# Function to check system requirements
+check_system_requirements() {
+    print_status "Checking system requirements..."
+    
+    # Check available disk space (at least 1GB)
+    local available_space=$(df -k . | awk 'NR==2 {print $4}')
+    local required_space=1048576  # 1GB in KB
+    
+    if [ "$available_space" -lt "$required_space" ]; then
+        print_warning "Low disk space. Available: $(($available_space/1024))MB, Recommended: 1GB+"
+    else
+        print_success "Sufficient disk space available"
+    fi
+    
+    # Check available memory
+    if command_exists free; then
+        local available_mem=$(free -m | awk 'NR==2{print $7}')
+        if [ "$available_mem" -lt 512 ]; then
+            print_warning "Low available memory: ${available_mem}MB"
+        else
+            print_success "Sufficient memory available: ${available_mem}MB"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS memory check
+        local total_mem=$(sysctl -n hw.memsize)
+        local total_mem_gb=$((total_mem / 1024 / 1024 / 1024))
+        print_status "Total system memory: ${total_mem_gb}GB"
+    fi
+}
 
-# Check plugins
-echo -e "${BLUE}🔌 Checking plugins:${NC}"
-PLUGINS=$(curl -s "http://localhost:$HTTP_PORT/plugins" 2>/dev/null || echo "[]")
-echo "$PLUGINS" | python3 -m json.tool 2>/dev/null || echo "Could not parse plugins info"
+# Function to check ports availability
+check_ports() {
+    print_status "Checking port availability..."
+    
+    if ! check_port $WEB_PORT; then
+        print_error "Port $WEB_PORT is already in use"
+        print_status "You can check what's using the port with: lsof -i :$WEB_PORT"
+        exit 1
+    fi
+    print_success "Port $WEB_PORT is available"
+    
+    if ! check_port $DICOM_PORT; then
+        print_error "Port $DICOM_PORT is already in use"
+        print_status "You can check what's using the port with: lsof -i :$DICOM_PORT"
+        exit 1
+    fi
+    print_success "Port $DICOM_PORT is available"
+}
 
-# Check DICOMweb functionality
-echo -e "${BLUE}🌐 Testing DICOMweb endpoint:${NC}"
-if curl -s "http://localhost:$HTTP_PORT/dicom-web/studies" >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ DICOMweb endpoint is working${NC}"
-else
-    echo -e "${YELLOW}⚠️  DICOMweb endpoint not responding (may need plugin)${NC}"
-fi
+# Function to create required directories
+create_directories() {
+    print_status "Creating required directories..."
+    
+    local dirs=("db" "config" "worklists")
+    
+    for dir in "${dirs[@]}"; do
+        if [ ! -d "$dir" ]; then
+            mkdir -p "$dir"
+            print_success "Created directory: $dir"
+        else
+            print_status "Directory already exists: $dir"
+        fi
+    done
+}
 
-echo ""
-echo -e "${GREEN}🎉 Hasta PACS Server Started Successfully!${NC}"
-echo "======================================="
-echo -e "Container Name: ${BLUE}$CONTAINER_NAME${NC}"
-echo -e "Web Interface: ${BLUE}http://localhost:$HTTP_PORT${NC}"
-echo -e "DICOM Port: ${BLUE}$DICOM_PORT${NC}"
-echo -e "Data Directory: ${BLUE}$SCRIPT_DIR/db${NC}"
-echo -e "Config File: ${BLUE}$SCRIPT_DIR/config/orthanc.json${NC}"
-echo ""
-echo -e "${YELLOW}Management Commands:${NC}"
-echo "  View logs:    docker logs $CONTAINER_NAME -f"
-echo "  Stop server:  docker stop $CONTAINER_NAME"
-echo "  Start server: docker start $CONTAINER_NAME"
-echo "  Remove:       docker rm $CONTAINER_NAME"
-echo "  Shell access: docker exec -it $CONTAINER_NAME /bin/bash"
-echo ""
-echo -e "${BLUE}📚 API Endpoints:${NC}"
-echo "  System info:  http://localhost:$HTTP_PORT/system"
-echo "  Studies:      http://localhost:$HTTP_PORT/studies"
-echo "  Patients:     http://localhost:$HTTP_PORT/patients"
-echo "  DICOMweb:     http://localhost:$HTTP_PORT/dicom-web/studies"
-echo ""
-echo -e "${GREEN}Server is ready for DICOM operations!${NC}"
+# Function to check required files
+check_required_files() {
+    print_status "Checking required configuration files..."
+    
+    if [ ! -f "config/orthanc-minimal.json" ]; then
+        print_warning "Configuration file 'config/orthanc-minimal.json' not found"
+        print_status "Creating a basic configuration file..."
+        
+        cat > config/orthanc-minimal.json << EOF
+{
+  "Name": "Hasta PACS Official",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "HttpPort": 8042,
+  "DicomPort": 4242,
+  "DicomModalities": {},
+  "OrthancPeers": {},
+  "DefaultEncoding": "Latin1",
+  "HttpsPort": 8043,
+  "SslEnabled": false,
+  "Worklists": {
+    "Enable": true,
+    "Database": "/worklists"
+  }
+}
+EOF
+        print_success "Created basic configuration file"
+    else
+        print_success "Configuration file found"
+    fi
+}
+
+# Function to check if container already exists
+check_existing_container() {
+    print_status "Checking for existing container..."
+    
+    if docker ps -a --format "table {{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        print_warning "Container '$CONTAINER_NAME' already exists"
+        
+        # Check if it's running
+        if docker ps --format "table {{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+            print_status "Container is currently running"
+            print_status "Stopping existing container..."
+            docker stop "$CONTAINER_NAME"
+        fi
+        
+        print_status "Removing existing container..."
+        docker rm "$CONTAINER_NAME"
+        print_success "Removed existing container"
+    fi
+}
+
+# Function to pull Docker image
+pull_docker_image() {
+    print_status "Pulling Docker image: $ORTHANC_IMAGE"
+    
+    if docker pull "$ORTHANC_IMAGE"; then
+        print_success "Successfully pulled Docker image"
+    else
+        print_error "Failed to pull Docker image"
+        exit 1
+    fi
+}
+
+# Function to start the container
+start_container() {
+    print_status "Starting Orthanc PACS container..."
+    
+    local container_id=$(docker run -d \
+        --name "$CONTAINER_NAME" \
+        -p "$WEB_PORT:8042" \
+        -p "$DICOM_PORT:4242" \
+        -v "$(pwd)/db:/var/lib/orthanc/db" \
+        -v "$(pwd)/config/orthanc-minimal.json:/etc/orthanc/orthanc.json" \
+        -v "$(pwd)/worklists:/worklists" \
+        "$ORTHANC_IMAGE")
+    
+    if [ $? -eq 0 ]; then
+        print_success "Container started successfully"
+        print_status "Container ID: $container_id"
+    else
+        print_error "Failed to start container"
+        exit 1
+    fi
+}
+
+# Function to verify container is running
+verify_container() {
+    print_status "Verifying container status..."
+    
+    sleep 3  # Give container time to start
+    
+    if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "$CONTAINER_NAME.*Up"; then
+        print_success "Container is running successfully"
+        
+        # Display container information
+        print_status "Container details:"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$CONTAINER_NAME"
+        
+        print_status "Waiting for Orthanc to be ready..."
+        local max_attempts=30
+        local attempt=0
+        
+        while [ $attempt -lt $max_attempts ]; do
+            if curl -s -f "http://localhost:$WEB_PORT/system" >/dev/null 2>&1; then
+                print_success "Orthanc is ready and responding"
+                break
+            fi
+            
+            attempt=$((attempt + 1))
+            sleep 2
+            echo -n "."
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+            print_warning "Orthanc may not be fully ready yet. Check logs: docker logs $CONTAINER_NAME"
+        fi
+        
+    else
+        print_error "Container failed to start properly"
+        print_status "Checking container logs..."
+        docker logs "$CONTAINER_NAME"
+        exit 1
+    fi
+}
+
+# Function to display connection information
+display_connection_info() {
+    print_success "=== Orthanc PACS Setup Complete ==="
+    echo
+    print_status "Web Interface: http://localhost:$WEB_PORT"
+    print_status "DICOM Port: $DICOM_PORT"
+    print_status "Container Name: $CONTAINER_NAME"
+    echo
+    print_status "Useful commands:"
+    echo "  View logs:        docker logs $CONTAINER_NAME"
+    echo "  Stop container:   docker stop $CONTAINER_NAME"
+    echo "  Start container:  docker start $CONTAINER_NAME"
+    echo "  Remove container: docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME"
+    echo
+    print_status "Data directories:"
+    echo "  Database:     $(pwd)/db"
+    echo "  Config:       $(pwd)/config"
+    echo "  Worklists:    $(pwd)/worklists"
+}
+
+# Function to handle cleanup on script exit
+cleanup() {
+    if [ $? -ne 0 ]; then
+        print_error "Script failed. Check the error messages above."
+        print_status "You can clean up with: docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME"
+    fi
+}
+
+# Set trap for cleanup
+trap cleanup EXIT
+
+# Main execution
+main() {
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}  Comprehensive Orthanc PACS Setup     ${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    echo
+    
+    check_docker
+    check_system_requirements
+    check_ports
+    create_directories
+    check_required_files
+    check_existing_container
+    pull_docker_image
+    start_container
+    verify_container
+    display_connection_info
+    
+    print_success "Setup completed successfully!"
+}
+
+# Run main function
+main "$@"
