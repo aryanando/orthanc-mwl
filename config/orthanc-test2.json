@@ -1,0 +1,28 @@
+{
+  "Name": "Orthanc Test 2",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "RegisteredUsers": {
+    "orthanc": "orthanc"
+  },
+  "DicomAet": "ORTHANC",
+  "DicomPort": 4242,
+  "HttpPort": 8042,
+
+  "Plugins": [
+    "/usr/share/orthanc/plugins/libOrthancWebViewer.so",
+    "/usr/share/orthanc/plugins/libOrthancGdcm.so"
+  ],
+  
+  "WebViewer": {
+    "CachePath": "/var/lib/orthanc/WebViewerCache",
+    "CacheSize": 100,
+    "EnableGdcm": true,
+    "RestrictOrigins": false,
+    "Threads": 4
+  },
+  
+  "HttpsCACertificates": "/etc/ssl/certs/ca-certificates.crt",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "SslEnabled": false
+}

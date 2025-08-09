@@ -26,6 +26,9 @@ echo "HTTP Port: $HTTP_PORT"
 echo "DICOM Port: $DICOM_PORT"
 echo ""
 
+echo "SCRIPT_DIR is $SCRIPT_DIR"
+ls -l "$SCRIPT_DIR/plugins"
+
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
     echo -e "${RED}❌ Error: Docker is not running!${NC}"

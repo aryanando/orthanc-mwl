@@ -9,12 +9,12 @@
   "HttpPort": 8042,
 
   "Plugins": [
-    "/usr/share/orthanc/plugins-available/libOrthancWebViewer.so",
-    "/usr/share/orthanc/plugins/libOrthancDicomWeb.so",
-    "/usr/share/orthanc/plugins/libModalityWorklists.so",
-    "/usr/share/orthanc/plugins/libOrthancExplorer2.so",
-    "/usr/share/orthanc/plugins/libOrthancGdcm.so"
-  ],
+      "/usr/share/orthanc/plugins/libOrthancWebViewer.so",
+      "/usr/share/orthanc/plugins/libOrthancDicomWeb.so",
+      "/usr/share/orthanc/plugins/libModalityWorklists.so",
+      "/usr/share/orthanc/plugins/libOrthancExplorer2.so",
+      "/usr/share/orthanc/plugins/libOrthancGdcm.so"
+    ],
   
   "DicomWeb": {
     "Enable": true,

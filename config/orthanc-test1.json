@@ -1,0 +1,38 @@
+{
+  "Name": "Orthanc Test 1",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "RegisteredUsers": {
+    "orthanc": "orthanc"
+  },
+  "DicomAet": "ORTHANC",
+  "DicomPort": 4242,
+  "HttpPort": 8042,
+
+  "Plugins": [
+    "/usr/share/orthanc/plugins/libOrthancWebViewer.so",
+    "/usr/share/orthanc/plugins/libModalityWorklists.so"
+  ],
+  
+  "WebViewer": {
+    "CachePath": "/var/lib/orthanc/WebViewerCache",
+    "CacheSize": 100,
+    "EnableGdcm": false,
+    "RestrictOrigins": false,
+    "Threads": 4
+  },
+  
+  "HttpsCACertificates": "/etc/ssl/certs/ca-certificates.crt",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "SslEnabled": false,
+  
+  "Worklists": {
+    "Enable": true,
+    "Database": "/worklists"
+  },
+  "DicomModalityWorklists": {
+    "Enable": true,
+    "CheckModality": false,
+    "WorklistsFolder": "/worklists"
+  }
+}
