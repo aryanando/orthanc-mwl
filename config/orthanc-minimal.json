@@ -55,11 +55,6 @@
     "WorklistsFolder": "/worklists"
   },
   "DicomModalities": {
-    "WORKSTATION": [
-      "WORKSTATION",
-      "127.0.0.1",
-      11112
-    ],
     "TESTMODALITY": [
       "TESTMODALITY", 
       "localhost",
@@ -67,8 +62,8 @@
     ],
     "FINDSCU": [
       "FINDSCU",
-      "172.17.0.1",
-      104
+      "host.docker.internal",
+      4242
     ]
   }
 }
