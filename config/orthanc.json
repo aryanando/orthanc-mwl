@@ -11,7 +11,7 @@
   "Plugins": [
       "/usr/share/orthanc/plugins/libOrthancWebViewer.so",
       "/usr/share/orthanc/plugins/libOrthancDicomWeb.so",
-      "/usr/share/orthanc/plugins/libModalityWorklists.so",
+      "/usr/share/orthanc/plugins/libOrthancWorklists.so",
       "/usr/share/orthanc/plugins/libOrthancExplorer2.so",
       "/usr/share/orthanc/plugins/libOrthancGdcm.so"
     ],
