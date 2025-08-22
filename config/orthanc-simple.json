@@ -1,0 +1,23 @@
+{
+  "Name": "Orthanc",
+  "DicomAet": "ORTHANC",
+  "DicomPort": 4242,
+  "HttpPort": 8042,
+  "StorageDirectory": "/var/lib/orthanc/db",
+  
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  
+  "HttpHeaders": {
+    "Access-Control-Allow-Origin": "*"
+  },
+  
+  "ModalityWorklists": {
+    "Enable": true,
+    "Database": "/worklists"
+  },
+  
+  "DicomModalities": {
+    "FINDSCU": ["FINDSCU", "dcmtk-findscu-client", 4242]
+  }
+}

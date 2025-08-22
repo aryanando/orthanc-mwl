@@ -1,0 +1,43 @@
+{
+  "Name": "Orthanc",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "RegisteredUsers": {
+    "orthanc": "orthanc"
+  },
+  "DicomAet": "ORTHANC",
+  "DicomPort": 4242,
+  "HttpPort": 8042,
+
+  "HttpsCACertificates": "/etc/ssl/certs/ca-certificates.crt",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "SslEnabled": false,
+  
+  "HttpHeaders": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Cache-Control"
+  },
+  
+  "Worklists": {
+    "Enable": true,
+    "Database": "/worklists"
+  },
+  "DicomModalityWorklists": {
+    "Enable": true,
+    "CheckModality": false,
+    "WorklistsFolder": "/worklists"
+  },
+  "DicomModalities": {
+    "TESTMODALITY": [
+      "TESTMODALITY", 
+      "localhost",
+      4242
+    ],
+    "FINDSCU": [
+      "FINDSCU",
+      "host.docker.internal",
+      4242
+    ]
+  }
+}
